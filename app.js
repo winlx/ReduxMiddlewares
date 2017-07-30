@@ -32,8 +32,6 @@ function reducer(state = initialState, action) {
   }
 }
 
-const store = createStore(reducer);
-
 const addTriple = store => next => (action) => {
   action.amount *= 3;
   return next(action);
@@ -55,8 +53,12 @@ const addLog = store => next => (action) => {
   return result;
 };
 
-store.dispatch = addLog(store)(store.dispatch);
-store.dispatch = addDouble(store)(store.dispatch);
-store.dispatch = addTriple(store)(store.dispatch);
+function applyMiddleware(store, ...middlewares) {
+  middlewares.reverse().forEach(middleware => store.dispatch = middleware(store)(store.dispatch));
+}
+
+const store = createStore(reducer);
+
+applyMiddleware(store, addLog, addDouble, addTriple);
 
 store.dispatch(increment(3));
