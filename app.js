@@ -53,12 +53,26 @@ const addLog = store => next => (action) => {
   return result;
 };
 
-function applyMiddleware(store, ...middlewares) {
-  middlewares.reverse().forEach(middleware => store.dispatch = middleware(store)(store.dispatch));
+function applyMiddleware(...middlewares) {
+  return createStore => (reducer, initialState, enhancer) => {
+    const store = createStore(reducer, initialState, enhancer);
+
+    let dispatch = store.dispatch;
+    let chain = [];
+
+    const middlewareAPI = {
+      getState: store.getState,
+      dispatch: action => dispatch(action),
+    };
+
+    chain = middlewares.map(middleware => middleware(middlewareAPI));
+    // chain.reduce аналог compose из Redux
+    dispatch = chain.reduce((f1, f2) => (...args) => f1(f2(...args)))(store.dispatch);
+
+    return Object.assign({}, store, { dispatch });
+  };
 }
 
-const store = createStore(reducer);
-
-applyMiddleware(store, addLog, addDouble, addTriple);
+const store = createStore(reducer, applyMiddleware(addLog, addDouble, addTriple));
 
 store.dispatch(increment(3));
